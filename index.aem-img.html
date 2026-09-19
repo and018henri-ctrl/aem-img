@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banco de Dados | A&M Produções</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Ícones Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Configuração do Tailwind -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            500: '#8b5cf6', // Violeta
+                            600: '#7c3aed',
+                            glow: '#c084fc'
+                        },
+                        dark: {
+                            900: '#0a0a0f',
+                            800: '#13131a',
+                            700: '#1c1c26'
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Estilos customizados e efeitos inovadores */
+        body {
+            background-color: #0a0a0f;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.15), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.15), transparent 25%);
+            background-attachment: fixed;
+            color: #ffffff;
+        }
+
+        /* Layout em estilo Masonry (colunas dinâmicas) */
+        .masonry-grid {
+            column-count: 1;
+            column-gap: 1.5rem;
+        }
+        @media (min-width: 640px) { .masonry-grid { column-count: 2; } }
+        @media (min-width: 1024px) { .masonry-grid { column-count: 3; } }
+        @media (min-width: 1280px) { .masonry-grid { column-count: 4; } }
+
+        .masonry-item {
+            break-inside: avoid;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Efeito Glassmorphism */
+        .glass-panel {
+            background: rgba(28, 28, 38, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Scrollbar customizada */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0a0f; }
+        ::-webkit-scrollbar-thumb { background: #2d2d3a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #8b5cf6; }
+
+        /* Loader */
+        .loader {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-left-color: #8b5cf6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Efeito de Hover nas mídias */
+        .media-card {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .media-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px -10px rgba(139, 92, 246, 0.3);
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+        .media-overlay {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .media-card:hover .media-overlay {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="min-h-screen antialiased flex flex-col relative overflow-x-hidden">
+
+    <!-- CONTAINER DE NOTIFICAÇÕES (TOASTS) -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-[300] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- OVERLAY DE AUTENTICAÇÃO (Bloqueia o app até fazer login) -->
+    <div id="authOverlay" class="fixed inset-0 z-[200] flex items-center justify-center bg-dark-900/95 backdrop-blur-xl transition-opacity duration-500">
+        <div class="glass-panel p-8 rounded-2xl w-full max-w-md mx-4 relative overflow-hidden border border-brand-500/30 shadow-[0_0_50px_rgba(139,92,246,0.15)] flex flex-col">
+            
+            <div class="flex items-center justify-center gap-3 mb-8">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500 to-blue-500 flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.5)]">
+                    <i data-lucide="database" class="text-white w-7 h-7"></i>
+                </div>
+                <div>
+                    <h1 class="font-display font-bold text-2xl tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">A&M PRODUÇÕES</h1>
+                </div>
+            </div>
+
+            <!-- Container de Mensagens (Erros / Sucesso) -->
+            <div id="authMessage" class="hidden mb-4 p-3 rounded-lg text-sm text-center font-medium border"></div>
+
+            <!-- FORMULÁRIO DE LOGIN -->
+            <form id="loginForm" class="flex flex-col gap-4">
+                <h2 class="text-lg font-bold text-white text-center mb-2">Acesse o Banco de Dados</h2>
+                <input type="email" id="loginEmail" placeholder="Seu E-mail" required class="w-full px-4 py-3 bg-dark-800 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <input type="password" id="loginPassword" placeholder="Sua Senha" required class="w-full px-4 py-3 bg-dark-800 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                
+                <button type="submit" id="loginBtn" class="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-bold transition-all shadow-lg mt-2 flex items-center justify-center gap-2">
+                    Entrar <i data-lucide="log-in" class="w-4 h-4"></i>
+                </button>
+                
+                <div class="relative flex py-2 items-center">
+                    <div class="flex-grow border-t border-white/10"></div>
+                    <span class="flex-shrink-0 mx-4 text-gray-500 text-sm">ou</span>
+                    <div class="flex-grow border-t border-white/10"></div>
+                </div>
+
+                <button type="button" id="googleLoginBtn" class="w-full py-3 bg-white text-dark-900 hover:bg-gray-200 rounded-lg font-bold transition-all shadow-lg flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                    Continuar com Google
+                </button>
+
+                <div class="flex justify-between items-center mt-2 text-sm">
+                    <button type="button" onclick="window.switchAuthView('reset')" class="text-gray-400 hover:text-brand-400 transition-colors">Esqueceu a senha?</button>
+                    <button type="button" onclick="window.switchAuthView('register')" class="text-brand-glow hover:text-white font-medium transition-colors">Criar Conta</button>
+                </div>
+            </form>
+
+            <!-- FORMULÁRIO DE REGISTRO -->
+            <form id="registerForm" class="hidden flex-col gap-4">
+                <h2 class="text-lg font-bold text-white text-center mb-2">Criar Nova Conta</h2>
+                <input type="email" id="regEmail" placeholder="Seu E-mail" required class="w-full px-4 py-3 bg-dark-800 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <input type="password" id="regPassword" placeholder="Crie uma Senha (mínimo 6 chars)" required minlength="6" class="w-full px-4 py-3 bg-dark-800 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                
+                <button type="submit" id="registerBtn" class="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-bold transition-all shadow-lg mt-2 flex items-center justify-center gap-2">
+                    Registrar <i data-lucide="user-plus" class="w-4 h-4"></i>
+                </button>
+
+                <button type="button" onclick="window.switchAuthView('login')" class="mt-4 text-sm text-gray-400 hover:text-white transition-colors text-center">
+                    Já tem uma conta? Voltar ao Login
+                </button>
+            </form>
+
+            <!-- FORMULÁRIO DE RECUPERAÇÃO DE SENHA -->
+            <form id="resetForm" class="hidden flex-col gap-4">
+                <h2 class="text-lg font-bold text-white text-center mb-2">Redefinir Senha</h2>
+                <p class="text-xs text-gray-400 text-center mb-2">Enviaremos um link para você criar uma nova senha.</p>
+                <input type="email" id="resetEmail" placeholder="Seu E-mail" required class="w-full px-4 py-3 bg-dark-800 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                
+                <button type="submit" id="resetBtn" class="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-bold transition-all shadow-lg mt-2 flex items-center justify-center gap-2">
+                    Enviar E-mail <i data-lucide="send" class="w-4 h-4"></i>
+                </button>
+
+                <button type="button" onclick="window.switchAuthView('login')" class="mt-4 text-sm text-gray-400 hover:text-white transition-colors text-center">
+                    Voltar ao Login
+                </button>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- Navegação / Cabeçalho -->
+    <header class="fixed top-0 w-full z-50 glass-panel border-b border-white/10 transition-all duration-300" id="header">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
+                
+                <!-- Logo -->
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-blue-500 flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.5)]">
+                        <i data-lucide="database" class="text-white w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-display font-bold text-xl tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+                            A&M PRODUÇÕES
+                        </h1>
+                        <p class="text-xs text-brand-glow font-medium uppercase tracking-widest">Banco de Mídia</p>
+                    </div>
+                </div>
+
+                <!-- Controles de Busca -->
+                <div class="flex-1 w-full lg:max-w-3xl flex flex-col md:flex-row gap-3">
+                    
+                    <!-- Toggle Imagem/Vídeo -->
+                    <div class="flex p-1 bg-dark-800 rounded-lg border border-white/5 shrink-0">
+                        <button onclick="window.setMediaType('photos')" id="btn-photos" class="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md bg-brand-600 text-white font-medium text-sm transition-all shadow-lg">
+                            <i data-lucide="image" class="w-4 h-4"></i> Imagens
+                        </button>
+                        <button onclick="window.setMediaType('videos')" id="btn-videos" class="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-gray-400 hover:text-white font-medium text-sm transition-all">
+                            <i data-lucide="video" class="w-4 h-4"></i> Vídeos
+                        </button>
+                    </div>
+
+                    <!-- Filtro de Orientação -->
+                    <div class="relative shrink-0">
+                        <select id="orientationSelect" onchange="window.setOrientation(this.value)" class="appearance-none block w-full pl-10 pr-8 py-3 bg-dark-800 border border-white/10 rounded-lg leading-5 text-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all sm:text-sm cursor-pointer h-full">
+                            <option value="">Todos Formatos</option>
+                            <option value="landscape">Horizontal</option>
+                            <option value="portrait">Vertical</option>
+                            <option value="square">Quadrado</option>
+                        </select>
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="layout" class="w-4 h-4 text-brand-glow"></i>
+                        </div>
+                        <div class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
+                            <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+                        </div>
+                    </div>
+
+                    <!-- Input de Pesquisa -->
+                    <form onsubmit="window.handleSearch(event)" class="relative flex-1 group">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-brand-500 transition-colors">
+                            <i data-lucide="search" class="w-5 h-5"></i>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            placeholder="Buscar cenários, tecnologias, natureza..." 
+                            class="block w-full pl-10 pr-20 py-3 bg-dark-800 border border-white/10 rounded-lg leading-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-dark-700 transition-all sm:text-sm"
+                        >
+                        <!-- Botão de Microfone -->
+                        <button type="button" id="micBtn" onclick="window.toggleVoiceSearch()" class="absolute inset-y-1 right-12 px-2 text-gray-400 hover:text-brand-500 transition-colors flex items-center justify-center" title="Pesquisa por Voz">
+                            <i data-lucide="mic" id="micIcon" class="w-5 h-5"></i>
+                        </button>
+                        <button type="submit" class="absolute inset-y-1 right-1 px-3 bg-dark-700 hover:bg-brand-600 rounded-md transition-colors flex items-center justify-center">
+                            <i data-lucide="arrow-right" class="w-4 h-4 text-white"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Painel do Usuário Logado -->
+                <div id="userPanel" class="hidden flex items-center gap-3 border-l border-white/10 pl-4">
+                    <div class="hidden sm:block text-right pr-2">
+                        <p class="text-xs text-gray-400">Logado como</p>
+                        <p id="userEmailDisplay" class="text-sm font-bold text-brand-glow truncate max-w-[120px]"></p>
+                    </div>
+                    
+                    <!-- NOVO: Botão de Configurar Pasta -->
+                    <button onclick="window.configureDownloadFolder()" id="folderBtn" class="p-2 bg-dark-800 hover:bg-brand-600 text-gray-400 hover:text-white border border-white/10 hover:border-brand-500/50 rounded-lg transition-all flex items-center gap-2 group" title="Escolher Pasta de Download">
+                        <i data-lucide="folder-down" id="folderIcon" class="w-5 h-5"></i>
+                        <span id="folderNameDisplay" class="hidden md:block text-xs font-medium truncate max-w-[80px]">Pasta</span>
+                    </button>
+
+                    <!-- Botão de Histórico -->
+                    <button onclick="window.openHistory()" class="p-2 bg-dark-800 hover:bg-brand-600 text-brand-glow hover:text-white border border-brand-500/30 rounded-lg transition-all shadow-[0_0_10px_rgba(139,92,246,0.2)] hover:shadow-[0_0_15px_rgba(139,92,246,0.5)]" title="Meu Histórico">
+                        <i data-lucide="clock" class="w-5 h-5"></i>
+                    </button>
+                    <!-- Botão de Logout -->
+                    <button id="logoutBtn" class="p-2 bg-dark-800 hover:bg-red-500/20 text-gray-400 hover:text-red-400 border border-white/10 hover:border-red-500/50 rounded-lg transition-all" title="Sair da Conta">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-48 md:pt-32 pb-12">
+        
+        <!-- Título da Busca Atual -->
+        <div class="mb-8 flex justify-between items-end border-b border-white/10 pb-4">
+            <div>
+                <h2 id="resultsTitle" class="text-3xl font-display font-bold text-white mb-2">Destaques Inovadores</h2>
+                <p id="resultsSubtitle" class="text-gray-400 text-sm">Mostrando os melhores resultados em alta resolução.</p>
+            </div>
+            <div id="resultsCount" class="text-brand-glow font-medium text-sm hidden sm:block"></div>
+        </div>
+
+        <!-- Estado de Carregamento -->
+        <div id="loadingState" class="hidden flex-col items-center justify-center py-20">
+            <div class="loader mb-4"></div>
+            <p class="text-brand-glow font-medium animate-pulse">Buscando no banco de dados...</p>
+        </div>
+
+        <!-- Estado Vazio / Erro -->
+        <div id="emptyState" class="hidden flex-col items-center justify-center py-20 text-center">
+            <div class="w-20 h-20 mb-6 rounded-full bg-dark-800 flex items-center justify-center border border-white/10 text-gray-500">
+                <i data-lucide="frown" class="w-10 h-10"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">Nenhum resultado encontrado</h3>
+            <p class="text-gray-400 max-w-md">Não conseguimos encontrar mídias para a sua busca com este formato. Tente usar termos ou formatos diferentes.</p>
+        </div>
+
+        <!-- Galeria (Masonry Grid) -->
+        <div id="gallery" class="masonry-grid">
+            <!-- Os itens serão injetados aqui via JavaScript -->
+        </div>
+
+        <!-- Paginação -->
+        <div id="pagination" class="mt-12 flex justify-center hidden">
+            <button onclick="window.loadMore()" class="glass-panel hover:bg-white/5 border border-white/10 text-white font-medium py-3 px-8 rounded-full flex items-center gap-2 transition-colors group">
+                <i data-lucide="plus" class="w-4 h-4 group-hover:rotate-90 transition-transform"></i>
+                Carregar Mais Resultados
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Modal de Pré-visualização Ampliada -->
+    <div id="mediaModal" class="fixed inset-0 z-[100] hidden flex-col items-center justify-center bg-black/95 backdrop-blur-sm transition-opacity duration-300 opacity-0" onclick="if(event.target.id === 'mediaModal' || event.target.id === 'modalContent') window.closeModal()">
+        <button onclick="window.closeModal()" class="absolute top-4 right-4 sm:top-6 sm:right-6 text-white/70 hover:text-white bg-dark-800/80 hover:bg-brand-600 p-3 rounded-full transition-all border border-white/10 z-[101]">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+        <div id="modalContent" class="relative w-full max-w-6xl flex flex-col items-center justify-center p-4">
+            <!-- O conteúdo (imagem ou vídeo) será injetado aqui -->
+        </div>
+    </div>
+
+    <!-- Modal de Histórico do Usuário -->
+    <div id="historyModal" class="fixed inset-0 z-[150] hidden flex-col items-center justify-center bg-black/95 backdrop-blur-sm transition-opacity duration-300 opacity-0" onclick="if(event.target.id === 'historyModal') window.closeHistory()">
+        <div class="glass-panel w-full max-w-5xl h-[85vh] mx-4 rounded-2xl flex flex-col relative overflow-hidden bg-dark-900 border border-white/10 shadow-[0_0_50px_rgba(139,92,246,0.15)]">
+            
+            <!-- Header do Histórico -->
+            <div class="p-6 border-b border-white/10 flex items-center justify-between bg-dark-800">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="clock" class="text-brand-glow w-7 h-7"></i>
+                    <h2 class="text-2xl font-display font-bold text-white">Meu Histórico</h2>
+                </div>
+                <button onclick="window.closeHistory()" class="text-white/70 hover:text-white bg-dark-700 hover:bg-brand-600 p-2 rounded-full transition-all">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <!-- Abas (Tabs) -->
+            <div class="flex border-b border-white/10 px-6 pt-2 gap-6 bg-dark-800">
+                <button onclick="window.switchHistoryTab('photo')" id="tab-history-photo" class="px-4 py-3 text-brand-glow border-b-2 border-brand-500 font-bold transition-colors flex items-center gap-2">
+                    <i data-lucide="image" class="w-4 h-4"></i> Imagens Baixadas
+                </button>
+                <button onclick="window.switchHistoryTab('video')" id="tab-history-video" class="px-4 py-3 text-gray-400 border-b-2 border-transparent hover:text-white font-medium transition-colors flex items-center gap-2">
+                    <i data-lucide="video" class="w-4 h-4"></i> Vídeos Baixados
+                </button>
+            </div>
+
+            <!-- Conteúdo do Histórico -->
+            <div class="flex-1 overflow-y-auto p-6 bg-dark-900/50 relative">
+                <div id="historyLoading" class="hidden flex-col items-center justify-center h-full text-brand-glow">
+                    <div class="loader mb-4"></div>
+                    <p class="animate-pulse">Sincronizando banco de dados...</p>
+                </div>
+                
+                <div id="historyGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <!-- Itens do histórico aparecerão aqui -->
+                </div>
+                
+                <div id="historyEmpty" class="hidden flex-col items-center justify-center h-full py-10 text-center">
+                    <i data-lucide="inbox" class="w-16 h-16 text-gray-600 mb-4"></i>
+                    <p class="text-gray-400 text-lg">Nenhum item baixado nesta categoria ainda.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rodapé -->
+    <footer class="border-t border-white/10 bg-dark-900/50 backdrop-blur-sm mt-auto">
+        <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-center items-center gap-4">
+            <p class="text-sm text-gray-500">
+                &copy; <span id="year"></span> A&M Produções. Todos os direitos reservados.
+            </p>
+        </div>
+    </footer>
+
+    <!-- Scripts em módulo para suportar Firebase -->
+    <script type="module">
+        // --- 1. IMPORTAÇÕES FIREBASE ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            signInWithEmailAndPassword, 
+            createUserWithEmailAndPassword, 
+            signInWithPopup, 
+            GoogleAuthProvider, 
+            sendPasswordResetEmail, 
+            onAuthStateChanged, 
+            signOut 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        
+        // Importação do Firestore para o banco de dados do Histórico
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            getDocs 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Configuração do Firebase fornecida
+        const firebaseConfig = {
+            apiKey: "AIzaSyAF4VH1IG7gL154AEH7FtT8l3u3camui64",
+            authDomain: "aem-img.firebaseapp.com",
+            projectId: "aem-img",
+            storageBucket: "aem-img.firebasestorage.app",
+            messagingSenderId: "949755352075",
+            appId: "1:949755352075:web:7e842b51d9ae537d16230e"
+        };
+
+        // Inicializar Firebase (Auth e Database)
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const googleProvider = new GoogleAuthProvider();
+        
+        // Identificador do App para seguir a arquitetura de segurança exigida
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'aem-img-default';
+
+        let currentUser = null; // Guardar usuário logado globalmente
+        let downloadDirectoryHandle = null; // Guardar a referência da pasta de download escolhida pelo usuário
+
+        // Inicializa os ícones
+        lucide.createIcons();
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // --- 2. LÓGICA DE INTERFACE DA AUTENTICAÇÃO ---
+        const authOverlay = document.getElementById('authOverlay');
+        const userPanel = document.getElementById('userPanel');
+        const userEmailDisplay = document.getElementById('userEmailDisplay');
+        const authMessage = document.getElementById('authMessage');
+
+        // Alternar visualizações do Modal de Auth
+        window.switchAuthView = function(view) {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('resetForm').classList.add('hidden');
+            document.getElementById(view + 'Form').classList.remove('hidden');
+            authMessage.classList.add('hidden'); // Limpa mensagens anteriores
+        }
+
+        // Função para mostrar mensagens (Erros ou Sucesso)
+        function showMessage(msg, type = 'error') {
+            authMessage.innerHTML = msg;
+            authMessage.classList.remove('hidden', 'bg-red-500/20', 'border-red-500/50', 'text-red-400', 'bg-green-500/20', 'border-green-500/50', 'text-green-400');
+            
+            if (type === 'error') {
+                authMessage.classList.add('bg-red-500/20', 'border-red-500/50', 'text-red-400');
+            } else {
+                authMessage.classList.add('bg-green-500/20', 'border-green-500/50', 'text-green-400');
+            }
+        }
+
+        // Eventos de Formulário do Firebase
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const pass = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('loginBtn');
+            btn.innerHTML = `<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>`;
+            
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (error) {
+                showMessage("Erro ao logar: E-mail ou senha incorretos.");
+                btn.innerHTML = `Entrar <i data-lucide="log-in" class="w-4 h-4"></i>`;
+                lucide.createIcons();
+            }
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('regEmail').value;
+            const pass = document.getElementById('regPassword').value;
+            const btn = document.getElementById('registerBtn');
+            btn.innerHTML = `<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>`;
+
+            try {
+                await createUserWithEmailAndPassword(auth, email, pass);
+            } catch (error) {
+                showMessage("Erro ao registrar. A senha deve ter 6 caracteres ou o email já existe.");
+                btn.innerHTML = `Registrar <i data-lucide="user-plus" class="w-4 h-4"></i>`;
+                lucide.createIcons();
+            }
+        });
+
+        document.getElementById('googleLoginBtn').addEventListener('click', async () => {
+            try {
+                await signInWithPopup(auth, googleProvider);
+            } catch (error) {
+                showMessage("Erro ao autenticar com Google.");
+            }
+        });
+
+        document.getElementById('resetForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('resetEmail').value;
+            const btn = document.getElementById('resetBtn');
+            btn.innerHTML = `<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>`;
+
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showMessage(`
+                    Um e-mail de redefinição foi enviado para <b>${email}</b>.<br><br>
+                    Por favor, verifique sua caixa de entrada e possivelmente a <b>caixa de SPAM</b>.<br>
+                    O remetente será: <span class="text-white font-bold tracking-wider">noreply@aem-img.firebaseapp.com</span>
+                `, 'success');
+                document.getElementById('resetEmail').value = '';
+            } catch (error) {
+                showMessage("Erro: Verifique se o e-mail está correto e cadastrado.");
+            }
+            btn.innerHTML = `Enviar E-mail <i data-lucide="send" class="w-4 h-4"></i>`;
+            lucide.createIcons();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            signOut(auth);
+        });
+
+        // --- SISTEMA DE NOTIFICAÇÕES (TOAST) ---
+        window.showToast = function(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let bgColor = 'bg-brand-600';
+            let icon = 'info';
+            if (type === 'success') { bgColor = 'bg-green-600'; icon = 'check-circle'; }
+            if (type === 'error') { bgColor = 'bg-red-600'; icon = 'alert-circle'; }
+
+            toast.className = `${bgColor} text-white px-4 py-3 rounded-lg shadow-[0_5px_15px_rgba(0,0,0,0.3)] transform transition-all duration-300 translate-y-10 opacity-0 flex items-center gap-3 border border-white/20`;
+            toast.innerHTML = `
+                <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i> 
+                <span class="text-sm font-medium">${message}</span>
+            `;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            // Animação de entrada
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-10', 'opacity-0');
+                }, 10);
+            });
+
+            // Animação de saída e remoção
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        };
+
+        // --- SELEÇÃO DE PASTA (FILE SYSTEM ACCESS API) ---
+        window.configureDownloadFolder = async function() {
+            if (!('showDirectoryPicker' in window)) {
+                window.showToast("Seu navegador não suporta a seleção de pastas. Usando downloads padrão.", "error");
+                return;
+            }
+
+            try {
+                // Pede ao usuário para selecionar uma pasta
+                downloadDirectoryHandle = await window.showDirectoryPicker({
+                    mode: 'readwrite'
+                });
+                
+                // Atualiza a UI para mostrar que uma pasta foi selecionada
+                const folderNameDisplay = document.getElementById('folderNameDisplay');
+                const folderIcon = document.getElementById('folderIcon');
+                const folderBtn = document.getElementById('folderBtn');
+                
+                folderNameDisplay.textContent = downloadDirectoryHandle.name;
+                folderIcon.classList.replace('text-gray-400', 'text-brand-glow');
+                folderBtn.classList.add('border-brand-500/50', 'bg-dark-700');
+                
+                window.showToast(`Pasta "${downloadDirectoryHandle.name}" configurada com sucesso!`, 'success');
+            } catch (error) {
+                console.log('Seleção de pasta cancelada ou falhou.', error);
+                // Não mostra erro se o usuário apenas cancelou a janela
+                if (error.name !== 'AbortError') {
+                    window.showToast("Não foi possível acessar a pasta.", "error");
+                }
+            }
+        };
+
+        // --- 3. MONITORAMENTO DE SESSÃO FIREBASE ---
+        let initialLoadDone = false;
+        
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                authOverlay.classList.add('opacity-0', 'pointer-events-none');
+                userPanel.classList.remove('hidden');
+                userEmailDisplay.textContent = user.email;
+                
+                if(!initialLoadDone) {
+                    fetchMedia();
+                    initialLoadDone = true;
+                }
+            } else {
+                currentUser = null;
+                authOverlay.classList.remove('opacity-0', 'pointer-events-none');
+                userPanel.classList.add('hidden');
+                document.getElementById('gallery').innerHTML = ''; 
+                initialLoadDone = false;
+            }
+        });
+
+        // --- 4. CONFIGURAÇÃO DA API PEXELS ---
+        const API_KEY = '1w6bJ2ciRclH3p3lYwFWsmfSInpOIBO6fI2tX68eNvyUIx8Sai6mQp81';
+        let currentMediaType = 'photos'; // 'photos' ou 'videos'
+        let currentQuery = 'tecnologia inovação'; // Busca padrão
+        let currentPage = 1;
+        let currentOrientation = ''; // Formato selecionado (vazio = todos)
+        const perPage = 20;
+
+        // Elementos da DOM
+        const galleryEl = document.getElementById('gallery');
+        const loadingEl = document.getElementById('loadingState');
+        const emptyEl = document.getElementById('emptyState');
+        const paginationEl = document.getElementById('pagination');
+        const titleEl = document.getElementById('resultsTitle');
+        const countEl = document.getElementById('resultsCount');
+        const searchInput = document.getElementById('searchInput');
+
+        // --- CONFIGURAÇÃO DA BUSCA POR VOZ ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let isListening = false;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.lang = 'pt-BR'; 
+            recognition.interimResults = false;
+
+            recognition.onstart = function() {
+                isListening = true;
+                const micIcon = document.getElementById('micIcon');
+                micIcon.classList.remove('text-gray-400');
+                micIcon.classList.add('text-brand-500', 'animate-pulse');
+                searchInput.placeholder = "Ouvindo...";
+            };
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                searchInput.value = transcript.replace(/\.$/, '');
+                currentQuery = searchInput.value;
+                currentPage = 1;
+                galleryEl.innerHTML = '';
+                fetchMedia();
+            };
+
+            recognition.onerror = function(event) {
+                console.error("Erro no reconhecimento de voz: ", event.error);
+                window.stopVoiceSearch();
+            };
+
+            recognition.onend = function() {
+                window.stopVoiceSearch();
+            };
+        } else {
+            document.addEventListener('DOMContentLoaded', () => {
+                const micBtn = document.getElementById('micBtn');
+                if(micBtn) micBtn.style.display = 'none';
+            });
+        }
+
+        window.toggleVoiceSearch = function() {
+            if (!recognition) {
+                alert("Desculpe, seu navegador não suporta busca por voz.");
+                return;
+            }
+            if (isListening) recognition.stop();
+            else recognition.start();
+        }
+
+        window.stopVoiceSearch = function() {
+            isListening = false;
+            const micIcon = document.getElementById('micIcon');
+            if(micIcon) {
+                micIcon.classList.add('text-gray-400');
+                micIcon.classList.remove('text-brand-500', 'animate-pulse');
+            }
+            searchInput.placeholder = "Buscar cenários, tecnologias, natureza...";
+        }
+
+        // Alterna entre Fotos e Vídeos
+        window.setMediaType = function(type) {
+            currentMediaType = type;
+            const btnPhotos = document.getElementById('btn-photos');
+            const btnVideos = document.getElementById('btn-videos');
+            
+            if(type === 'photos') {
+                btnPhotos.className = "flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md bg-brand-600 text-white font-medium text-sm transition-all shadow-[0_0_15px_rgba(139,92,246,0.4)]";
+                btnVideos.className = "flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-gray-400 hover:text-white font-medium text-sm transition-all bg-transparent";
+            } else {
+                btnVideos.className = "flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md bg-brand-600 text-white font-medium text-sm transition-all shadow-[0_0_15px_rgba(139,92,246,0.4)]";
+                btnPhotos.className = "flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-md text-gray-400 hover:text-white font-medium text-sm transition-all bg-transparent";
+            }
+            currentPage = 1;
+            galleryEl.innerHTML = '';
+            fetchMedia();
+        }
+
+        // Atualiza a Orientação
+        window.setOrientation = function(val) {
+            currentOrientation = val;
+            currentPage = 1;
+            galleryEl.innerHTML = '';
+            fetchMedia();
+        }
+
+        // Lida com o formulário de pesquisa
+        window.handleSearch = function(e) {
+            e.preventDefault();
+            const query = searchInput.value.trim();
+            if(!query) return;
+            currentQuery = query;
+            currentPage = 1;
+            galleryEl.innerHTML = '';
+            fetchMedia();
+            searchInput.blur();
+        }
+
+        window.loadMore = function() {
+            currentPage++;
+            fetchMedia(true);
+        }
+
+        // Função principal para buscar dados na API Pexels
+        async function fetchMedia(append = false) {
+            if (!append) {
+                loadingEl.classList.remove('hidden');
+                emptyEl.classList.add('hidden');
+                paginationEl.classList.add('hidden');
+                titleEl.textContent = currentQuery ? `Buscando: "${currentQuery}"` : "Destaques Inovadores";
+            }
+
+            let url = currentMediaType === 'photos'
+                ? `https://api.pexels.com/v1/search?query=${encodeURIComponent(currentQuery)}&per_page=${perPage}&page=${currentPage}`
+                : `https://api.pexels.com/videos/search?query=${encodeURIComponent(currentQuery)}&per_page=${perPage}&page=${currentPage}`;
+
+            // Adiciona o filtro de orientação se estiver selecionado
+            if (currentOrientation) {
+                url += `&orientation=${currentOrientation}`;
+            }
+
+            try {
+                const response = await fetch(url, { headers: { 'Authorization': API_KEY } });
+                if (!response.ok) throw new Error('Falha na resposta da rede');
+
+                const data = await response.json();
+                const items = currentMediaType === 'photos' ? data.photos : data.videos;
+
+                loadingEl.classList.add('hidden');
+
+                if (items.length === 0 && !append) {
+                    emptyEl.classList.remove('hidden');
+                    countEl.classList.add('hidden');
+                    return;
+                }
+
+                if (!append) {
+                    titleEl.textContent = `Resultados para "${currentQuery}"`;
+                    countEl.textContent = `${data.total_results} ${currentMediaType === 'photos' ? 'imagens' : 'vídeos'} encontrados`;
+                    countEl.classList.remove('hidden');
+                }
+
+                renderItems(items);
+
+                if (data.next_page) paginationEl.classList.remove('hidden');
+                else paginationEl.classList.add('hidden');
+
+            } catch (error) {
+                console.error("Erro ao buscar mídia:", error);
+                loadingEl.classList.add('hidden');
+                if (!append) {
+                    emptyEl.classList.remove('hidden');
+                    emptyEl.querySelector('p').textContent = "Ocorreu um erro ao conectar com o servidor. Verifique sua conexão.";
+                }
+            }
+        }
+
+        // Renderiza os itens na DOM
+        function renderItems(items) {
+            items.forEach(item => {
+                const isPhoto = currentMediaType === 'photos';
+                const div = document.createElement('div');
+                div.className = 'masonry-item media-card relative rounded-2xl overflow-hidden bg-dark-800 border border-white/5 group cursor-pointer';
+
+                const imageUrl = isPhoto ? item.src.large : item.image;
+                const author = "A&M Produções"; 
+                
+                const modalUrl = isPhoto ? item.src.large2x : (item.video_files.find(f => f.quality === 'hd') || item.video_files[0]).link;
+                div.onclick = () => window.openModal(isPhoto ? 'photo' : 'video', modalUrl, author);
+
+                let mediaContent = '';
+                let downloadControls = '';
+
+                if (isPhoto) {
+                    mediaContent = `<img src="${imageUrl}" alt="${item.alt || 'Imagem A&M'}" class="absolute top-0 left-0 w-full h-full object-cover" loading="lazy">`;
+                    downloadControls = `
+                        <button onclick="window.downloadMedia('${item.src.original}', 'AM_Producoes_Imagem_${item.id}.jpg', 'photo', '${imageUrl}', '${author}', event)" 
+                                class="bg-brand-600 hover:bg-brand-500 text-white rounded-xl p-3 shadow-[0_0_15px_rgba(139,92,246,0.6)] transition-all flex-shrink-0 flex items-center justify-center transform hover:scale-110 active:scale-95 pointer-events-auto"
+                                title="Baixar Arquivo Original">
+                            <i data-lucide="download" class="w-5 h-5"></i>
+                        </button>
+                    `;
+                } else {
+                    const previewFile = item.video_files.find(f => f.quality === 'sd') || item.video_files[0];
+                    mediaContent = `
+                        <video src="${previewFile.link}" poster="${imageUrl}" loop muted playsinline preload="none"
+                               class="absolute top-0 left-0 w-full h-full object-cover transition-opacity duration-300"
+                               onmouseover="window.playVideo(this)" onmouseout="window.pauseVideo(this)">
+                        </video>
+                        <div class="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none group-hover:opacity-0 transition-opacity duration-300">
+                            <div class="w-12 h-12 rounded-full bg-brand-500/80 backdrop-blur-sm flex items-center justify-center text-white pl-1 shadow-lg border border-white/20">
+                                <i data-lucide="play" class="w-5 h-5 fill-current"></i>
+                            </div>
+                        </div>
+                    `;
+
+                    const uniqueFiles = [];
+                    const seenWidths = new Set();
+                    const sortedFiles = [...item.video_files].sort((a, b) => b.width - a.width);
+                    
+                    sortedFiles.forEach(file => {
+                        if (!seenWidths.has(file.width) && file.width !== null) {
+                            seenWidths.add(file.width);
+                            uniqueFiles.push(file);
+                        }
+                    });
+
+                    const dropdownItems = uniqueFiles.map(file => {
+                        let label = `${file.height}p`;
+                        if (file.width >= 3840) label = '4K UHD';
+                        else if (file.width >= 1920) label = '1080p Full HD';
+                        else if (file.width >= 1280) label = '720p HD';
+                        else label = `${file.width}x${file.height} SD`;
+                        
+                        return `
+                            <button onclick="window.downloadMedia('${file.link}', 'AM_Producoes_Video_${item.id}_${label.replace(/ /g, '_')}.mp4', 'video', '${imageUrl}', '${author}', event)"
+                                    class="w-full text-left px-4 py-2 hover:bg-brand-600 text-sm text-white transition-colors flex justify-between items-center group/btn pointer-events-auto">
+                                <span>${label}</span>
+                                <i data-lucide="download" class="w-3 h-3 text-brand-glow opacity-0 group-hover/btn:opacity-100 transition-opacity"></i>
+                            </button>
+                        `;
+                    }).join('');
+
+                    downloadControls = `
+                        <div class="relative group/dl pointer-events-auto">
+                            <button class="bg-brand-600 hover:bg-brand-500 text-white rounded-xl p-3 shadow-[0_0_15px_rgba(139,92,246,0.6)] transition-all flex-shrink-0 flex items-center justify-center group-hover/dl:rounded-br-none"
+                                    title="Opções de Download">
+                                <i data-lucide="download" class="w-5 h-5"></i>
+                                <i data-lucide="chevron-down" class="w-3 h-3 ml-1 -mr-1"></i>
+                            </button>
+                            <div class="absolute bottom-full right-0 mb-1 w-48 bg-dark-800 border border-white/10 rounded-xl rounded-br-none overflow-hidden opacity-0 invisible group-hover/dl:opacity-100 group-hover/dl:visible transition-all duration-200 origin-bottom-right shadow-[0_0_20px_rgba(0,0,0,0.8)] z-50">
+                                <div class="py-1 bg-dark-900/90 backdrop-blur-xl">
+                                    <div class="px-4 py-2 text-xs text-brand-glow font-bold border-b border-white/10 uppercase tracking-wider">Qualidade</div>
+                                    ${dropdownItems}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                div.innerHTML = `
+                    <div class="relative w-full overflow-hidden bg-dark-900" style="padding-bottom: ${isPhoto ? (item.height / item.width * 100) : (item.height / item.width * 100)}%;">
+                        ${mediaContent}
+                    </div>
+                    
+                    <div class="media-overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-5 pointer-events-none">
+                        <div class="flex justify-between items-end">
+                            <div class="flex-1 pointer-events-auto">
+                                <p class="text-white font-medium truncate pr-2 flex items-center gap-2">
+                                    <i data-lucide="user" class="w-4 h-4 text-brand-glow"></i>
+                                    ${author}
+                                </p>
+                                <p class="text-gray-400 text-xs mt-1">
+                                    ${isPhoto ? `${item.width} x ${item.height}` : `${item.duration} segundos`}
+                                </p>
+                            </div>
+                            ${downloadControls}
+                        </div>
+                        <div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded border border-white/10 text-[10px] text-white uppercase font-bold tracking-wider pointer-events-none">
+                            ${isPhoto ? 'FOTO' : 'VÍDEO'}
+                        </div>
+                    </div>
+                `;
+                
+                galleryEl.appendChild(div);
+            });
+            
+            lucide.createIcons();
+        }
+
+        // --- SISTEMA DE DOWNLOAD & SALVAMENTO DE HISTÓRICO ---
+        // Adicionada a flag "skipHistory" para não duplicar se a pessoa estiver baixando por dentro do histórico
+        window.downloadMedia = async function(url, filename, type, thumbUrl, author, event, skipHistory = false) {
+            event.stopPropagation(); 
+            
+            const btn = event.currentTarget;
+            const originalHtml = btn.innerHTML;
+            
+            btn.innerHTML = `<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>`;
+            btn.classList.remove('bg-brand-600', 'hover:bg-brand-500');
+            btn.classList.add('bg-dark-700', 'pointer-events-none');
+
+            try {
+                // Efetua Download para a memória (Blob)
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Falha no download da rede');
+                const blob = await response.blob();
+
+                let savedWithAPI = false;
+
+                // TENTA SALVAR NA PASTA ESCOLHIDA (SE HOUVER)
+                if (downloadDirectoryHandle) {
+                    try {
+                        // Verifica se ainda temos permissão de escrita
+                        const permissionStatus = await downloadDirectoryHandle.requestPermission({ mode: 'readwrite' });
+                        
+                        if (permissionStatus === 'granted') {
+                            // Cria o arquivo na pasta selecionada
+                            const fileHandle = await downloadDirectoryHandle.getFileHandle(filename, { create: true });
+                            const writable = await fileHandle.createWritable();
+                            await writable.write(blob);
+                            await writable.close();
+                            savedWithAPI = true;
+                            window.showToast(`Arquivo salvo em: ${downloadDirectoryHandle.name}`, 'success');
+                        }
+                    } catch (fsError) {
+                        console.error("Erro ao salvar na pasta específica. Usando método padrão.", fsError);
+                    }
+                }
+
+                // FALLBACK: DOWNLOAD PADRÃO (Se não usou a pasta ou deu erro)
+                if (!savedWithAPI) {
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = blobUrl;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(blobUrl);
+                    document.body.removeChild(a);
+                    
+                    if (!downloadDirectoryHandle) {
+                        window.showToast("Download iniciado.", "info");
+                    }
+                }
+
+                btn.innerHTML = `<i data-lucide="check" class="w-5 h-5 text-green-400"></i>`;
+                lucide.createIcons();
+
+                // SALVA NO BANCO DE DADOS (FIRESTORE) SE LOGADO E NÃO ESTIVER NO HISTÓRICO
+                if (currentUser && !skipHistory) {
+                    try {
+                        const historyRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'history');
+                        await addDoc(historyRef, {
+                            url: url,
+                            filename: filename,
+                            type: type,          // 'photo' ou 'video'
+                            thumbUrl: thumbUrl,
+                            author: author,
+                            timestamp: Date.now() // Guardamos a data do download
+                        });
+                    } catch (dbError) {
+                        console.error("Erro ao salvar histórico:", dbError);
+                    }
+                }
+
+            } catch (error) {
+                console.error("Erro ao baixar. Tentando método alternativo...", error);
+                window.open(url, '_blank');
+                btn.innerHTML = `<i data-lucide="alert-circle" class="w-5 h-5 text-red-400"></i>`;
+                lucide.createIcons();
+            }
+
+            setTimeout(() => {
+                btn.innerHTML = originalHtml;
+                btn.classList.add('bg-brand-600', 'hover:bg-brand-500');
+                btn.classList.remove('bg-dark-700', 'pointer-events-none');
+                lucide.createIcons();
+            }, 2500);
+        }
+
+        // --- SISTEMA E UI DO HISTÓRICO ---
+        let historyData = [];
+        let currentHistoryTab = 'photo';
+
+        window.openHistory = async function() {
+            const modal = document.getElementById('historyModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            void modal.offsetWidth;
+            modal.classList.remove('opacity-0');
+            document.body.style.overflow = 'hidden';
+
+            await loadHistoryFromDB();
+        }
+
+        window.closeHistory = function() {
+            const modal = document.getElementById('historyModal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = '';
+            }, 300);
+        }
+
+        async function loadHistoryFromDB() {
+            if (!currentUser) return;
+            
+            document.getElementById('historyLoading').classList.remove('hidden');
+            document.getElementById('historyGrid').innerHTML = '';
+            document.getElementById('historyEmpty').classList.add('hidden');
+
+            try {
+                const historyRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'history');
+                const querySnapshot = await getDocs(historyRef);
+                
+                historyData = [];
+                querySnapshot.forEach((doc) => {
+                    historyData.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Ordena do mais recente para o mais antigo
+                historyData.sort((a, b) => b.timestamp - a.timestamp);
+                
+                // Exibe a aba atual
+                window.switchHistoryTab(currentHistoryTab);
+            } catch (error) {
+                console.error("Erro ao buscar histórico:", error);
+            } finally {
+                document.getElementById('historyLoading').classList.add('hidden');
+            }
+        }
+
+        window.switchHistoryTab = function(tabType) {
+            currentHistoryTab = tabType;
+            
+            // Controle de cores das Abas
+            const tabPhoto = document.getElementById('tab-history-photo');
+            const tabVideo = document.getElementById('tab-history-video');
+
+            if (tabType === 'photo') {
+                tabPhoto.classList.replace('text-gray-400', 'text-brand-glow');
+                tabPhoto.classList.replace('border-transparent', 'border-brand-500');
+                tabVideo.classList.replace('text-brand-glow', 'text-gray-400');
+                tabVideo.classList.replace('border-brand-500', 'border-transparent');
+            } else {
+                tabVideo.classList.replace('text-gray-400', 'text-brand-glow');
+                tabVideo.classList.replace('border-transparent', 'border-brand-500');
+                tabPhoto.classList.replace('text-brand-glow', 'text-gray-400');
+                tabPhoto.classList.replace('border-brand-500', 'border-transparent');
+            }
+
+            renderHistoryGrid();
+        }
+
+        function renderHistoryGrid() {
+            const grid = document.getElementById('historyGrid');
+            const emptyState = document.getElementById('historyEmpty');
+            grid.innerHTML = '';
+
+            // Filtra entre imagens ou vídeos com base na aba clicada
+            const filteredData = historyData.filter(item => item.type === currentHistoryTab);
+
+            if (filteredData.length === 0) {
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+            }
+
+            filteredData.forEach(item => {
+                const dateObj = new Date(item.timestamp);
+                const dateStr = dateObj.toLocaleDateString('pt-BR');
+                
+                const div = document.createElement('div');
+                div.className = 'bg-dark-800 rounded-xl overflow-hidden border border-white/10 group flex flex-col transition-all hover:border-brand-500/50 hover:shadow-[0_5px_15px_rgba(139,92,246,0.2)]';
+                
+                div.innerHTML = `
+                    <div class="relative h-32 w-full overflow-hidden bg-dark-900 cursor-pointer" onclick="window.openModal('${item.type}', '${item.type === 'video' ? item.url : item.thumbUrl}', '${item.author}')">
+                        <img src="${item.thumbUrl}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                        ${item.type === 'video' ? `
+                            <div class="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <i data-lucide="play-circle" class="w-8 h-8 text-white opacity-80"></i>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="p-3 flex-1 flex flex-col justify-between">
+                        <p class="text-[11px] text-gray-300 font-medium truncate mb-2" title="${item.filename}">
+                            ${item.filename}
+                        </p>
+                        <div class="flex items-center justify-between mt-auto">
+                            <span class="text-[10px] text-brand-glow uppercase font-bold">${dateStr}</span>
+                            <button onclick="window.downloadMedia('${item.url}', '${item.filename}', '${item.type}', '${item.thumbUrl}', '${item.author}', event, true)" 
+                                    class="p-2 bg-dark-700 hover:bg-brand-600 rounded-lg text-white transition-colors" title="Baixar Novamente">
+                                <i data-lucide="download" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        // Header scroll, playVideo, pauseVideo e Modal de Ampliação...
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('header');
+            if (window.scrollY > 20) {
+                header.classList.add('py-2', 'bg-dark-900/90');
+                header.classList.remove('py-4');
+            } else {
+                header.classList.add('py-4');
+                header.classList.remove('py-2', 'bg-dark-900/90');
+            }
+        });
+
+        window.playVideo = function(video) {
+            video.playPromise = video.play();
+            if (video.playPromise !== undefined) {
+                video.playPromise.catch(error => {});
+            }
+        };
+
+        window.pauseVideo = function(video) {
+            if (video.playPromise !== undefined) {
+                video.playPromise.then(() => {
+                    video.pause();
+                    video.currentTime = 0;
+                }).catch(error => {});
+            } else {
+                video.pause();
+                video.currentTime = 0;
+            }
+        };
+
+        const mediaModal = document.getElementById('mediaModal');
+        const modalContent = document.getElementById('modalContent');
+
+        window.openModal = function(type, url, author) {
+            mediaModal.classList.remove('hidden');
+            mediaModal.classList.add('flex');
+            void mediaModal.offsetWidth;
+            mediaModal.classList.remove('opacity-0');
+            
+            let mediaHtml = '';
+            if (type === 'photo') {
+                mediaHtml = `<img src="${url}" class="max-w-full max-h-[80vh] object-contain rounded-xl shadow-[0_0_50px_rgba(139,92,246,0.25)] border border-white/10" alt="Prévia Ampliada">`;
+            } else {
+                mediaHtml = `<video src="${url}" controls autoplay class="max-w-full max-h-[80vh] outline-none rounded-xl shadow-[0_0_50px_rgba(139,92,246,0.25)] border border-white/10 bg-black"></video>`;
+            }
+
+            modalContent.innerHTML = `
+                ${mediaHtml}
+                <div class="mt-6 px-6 py-3 bg-dark-800/80 backdrop-blur-md border border-white/10 rounded-full text-white text-lg font-medium flex items-center gap-3 shadow-xl pointer-events-none">
+                    <i data-lucide="camera" class="w-5 h-5 text-brand-glow"></i>
+                    <span>Criado por <span class="text-brand-glow font-bold">${author}</span></span>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        window.closeModal = function() {
+            mediaModal.classList.add('opacity-0');
+            setTimeout(() => {
+                mediaModal.classList.add('hidden');
+                mediaModal.classList.remove('flex');
+                modalContent.innerHTML = '';
+            }, 300);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (!mediaModal.classList.contains('hidden')) window.closeModal();
+                if (!document.getElementById('historyModal').classList.contains('hidden')) window.closeHistory();
+            }
+        });
+
+    </script>
+</body>
+</html>
