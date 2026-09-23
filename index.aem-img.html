@@ -97,13 +97,11 @@
         /* Efeito de Hover nas mídias */
         .media-card {
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 1;
         }
         .media-card:hover {
             transform: translateY(-8px) scale(1.02);
             box-shadow: 0 20px 40px -10px rgba(139, 92, 246, 0.3);
             border-color: rgba(139, 92, 246, 0.5);
-            z-index: 50;
         }
         .media-overlay {
             opacity: 0;
@@ -111,6 +109,52 @@
         }
         .media-card:hover .media-overlay {
             opacity: 1;
+        }
+
+        /* Pesquisa ampla, sem disputar espaço com a marca e a conta. */
+        #headerLayout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 16px;
+        }
+        #userPanel { grid-column: 2; grid-row: 1; }
+        #searchControls {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            max-width: none;
+            min-width: 0;
+        }
+        #searchControls .search-form {
+            order: -1;
+            flex: 1 1 0%;
+            min-width: 0;
+        }
+        #searchInput {
+            min-height: 58px;
+            font-size: 18px;
+            line-height: 1.5;
+            padding-left: 44px;
+            padding-right: 100px;
+            color: #fff;
+            background-color: #1c1c26;
+            border-color: rgba(192, 132, 252, 0.5);
+        }
+        #searchInput::placeholder { color: #aeb4c2; opacity: 1; }
+        #micBtn { right: 48px; width: 44px; }
+        .search-form button[type="submit"] { width: 44px; }
+        @media (max-width: 767px) {
+            #searchControls { display: grid; grid-template-columns: 1fr 1fr; }
+            #searchControls .search-form { grid-column: 1 / -1; }
+            #searchControls > div { min-width: 0; }
+            #searchControls select { font-size: 14px; }
+            #searchControls > div:first-child button { padding-left: 8px; padding-right: 8px; }
+        }
+        @media (max-width: 479px) {
+            #headerLayout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+            #userPanel { grid-column: 1; grid-row: 2; justify-self: end; border-left: 0; padding-left: 0; }
+            #searchInput { font-size: 17px; }
         }
     </style>
 </head>
@@ -196,9 +240,9 @@
     </div>
 
     <!-- Navegação / Cabeçalho -->
-    <header class="fixed top-0 w-full z-50 glass-panel border-b border-white/10 transition-all duration-300" id="header">
+    <header class="sticky top-0 w-full z-50 glass-panel border-b border-white/10 transition-all duration-300" id="header">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
+            <div id="headerLayout" class="flex flex-col lg:flex-row justify-between items-center gap-4">
                 
                 <!-- Logo -->
                 <div class="flex items-center gap-3">
@@ -214,7 +258,7 @@
                 </div>
 
                 <!-- Controles de Busca -->
-                <div class="flex-1 w-full lg:max-w-3xl flex flex-col md:flex-row gap-3">
+                <div id="searchControls" class="flex-1 w-full lg:max-w-3xl flex flex-col md:flex-row gap-3">
                     
                     <!-- Toggle Imagem/Vídeo -->
                     <div class="flex p-1 bg-dark-800 rounded-lg border border-white/5 shrink-0">
@@ -243,13 +287,14 @@
                     </div>
 
                     <!-- Input de Pesquisa -->
-                    <form onsubmit="window.handleSearch(event)" class="relative flex-1 group">
+                    <form onsubmit="window.handleSearch(event)" class="search-form relative flex-1 group" role="search">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-brand-500 transition-colors">
                             <i data-lucide="search" class="w-5 h-5"></i>
                         </div>
                         <input 
                             type="text" 
-                            id="searchInput" 
+                            id="searchInput"
+                            aria-label="Pesquisar imagens e vídeos" 
                             placeholder="Buscar cenários, tecnologias, natureza..." 
                             class="block w-full pl-10 pr-20 py-3 bg-dark-800 border border-white/10 rounded-lg leading-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-dark-700 transition-all sm:text-sm"
                         >
@@ -291,7 +336,7 @@
     </header>
 
     <!-- Conteúdo Principal -->
-    <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-48 md:pt-32 pb-12">
+    <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pt-8 pb-12">
         
         <!-- Título da Busca Atual -->
         <div class="mb-8 flex justify-between items-end border-b border-white/10 pb-4">
@@ -806,7 +851,7 @@
             items.forEach(item => {
                 const isPhoto = currentMediaType === 'photos';
                 const div = document.createElement('div');
-                div.className = 'masonry-item media-card relative rounded-2xl bg-dark-800 border border-white/5 group cursor-pointer';
+                div.className = 'masonry-item media-card relative rounded-2xl overflow-hidden bg-dark-800 border border-white/5 group cursor-pointer';
 
                 const imageUrl = isPhoto ? item.src.large : item.image;
                 const author = "A&M Produções"; 
@@ -875,8 +920,8 @@
                                 <i data-lucide="chevron-down" class="w-3 h-3 ml-1 -mr-1"></i>
                             </button>
                             <div class="absolute bottom-full right-0 mb-1 w-48 bg-dark-800 border border-white/10 rounded-xl rounded-br-none overflow-hidden opacity-0 invisible group-hover/dl:opacity-100 group-hover/dl:visible transition-all duration-200 origin-bottom-right shadow-[0_0_20px_rgba(0,0,0,0.8)] z-50">
-                                <div class="py-1 bg-dark-900/90 backdrop-blur-xl max-h-56 overflow-y-auto">
-                                    <div class="px-4 py-2 text-xs text-brand-glow font-bold border-b border-white/10 uppercase tracking-wider sticky top-0 bg-dark-900/95 backdrop-blur-xl z-10">Qualidade</div>
+                                <div class="py-1 bg-dark-900/90 backdrop-blur-xl">
+                                    <div class="px-4 py-2 text-xs text-brand-glow font-bold border-b border-white/10 uppercase tracking-wider">Qualidade</div>
                                     ${dropdownItems}
                                 </div>
                             </div>
@@ -885,11 +930,11 @@
                 }
 
                 div.innerHTML = `
-                    <div class="relative w-full overflow-hidden bg-dark-900 rounded-2xl" style="padding-bottom: ${isPhoto ? (item.height / item.width * 100) : (item.height / item.width * 100)}%;">
+                    <div class="relative w-full overflow-hidden bg-dark-900" style="padding-bottom: ${isPhoto ? (item.height / item.width * 100) : (item.height / item.width * 100)}%;">
                         ${mediaContent}
                     </div>
                     
-                    <div class="media-overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-5 pointer-events-none rounded-2xl">
+                    <div class="media-overlay absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-5 pointer-events-none">
                         <div class="flex justify-between items-end">
                             <div class="flex-1 pointer-events-auto">
                                 <p class="text-white font-medium truncate pr-2 flex items-center gap-2">
